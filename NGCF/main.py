@@ -17,13 +17,24 @@ from time import time
 
 
 if __name__ == '__main__':
-
-    args.device = torch.device('cuda:' + str(args.gpu_id))
+    print(f'''
+          Dataset: {args.dataset}
+          Epoch: {args.epoch}
+          Patience: {args.patience} on NDCG@20
+          Embedding Dim: {args.embed_size}
+          Learning Rate: {args.lr}
+          Batch Size: {args.batch_size}
+          Num of Layers: {len(eval(args.layer_size))}
+          L2 Norm: {eval(args.regs)[0]}
+          ''')
+    # args.device = torch.device('cuda:' + str(args.gpu_id))
+    args.device = torch.device('cuda')
 
     plain_adj, norm_adj, mean_adj = data_generator.get_adj_mat()
 
     args.node_dropout = eval(args.node_dropout)
-    args.mess_dropout = eval(args.mess_dropout)
+    # args.mess_dropout = eval(args.mess_dropout)
+    args.mess_dropout = [0.1]*len(eval(args.layer_size))
 
     model = NGCF(data_generator.n_users,
                  data_generator.n_items,
@@ -89,8 +100,8 @@ if __name__ == '__main__':
                         ret['ndcg'][0], ret['ndcg'][-1])
             print(perf_str)
 
-        cur_best_pre_0, stopping_step, should_stop = early_stopping(ret['recall'][0], cur_best_pre_0,
-                                                                    stopping_step, expected_order='acc', flag_step=5)
+        cur_best_pre_0, stopping_step, should_stop = early_stopping(ret['ndcg'][-1], cur_best_pre_0,
+                                                                    stopping_step, expected_order='acc', flag_step=args.patience)
 
         # *********************************************************
         # early stopping when cur_best_pre_0 is decreasing for ten successive steps.
@@ -99,7 +110,7 @@ if __name__ == '__main__':
 
         # *********************************************************
         # save the user & item embeddings for pretraining.
-        if ret['recall'][0] == cur_best_pre_0 and args.save_flag == 1:
+        if ret['ndcg'][-1] == cur_best_pre_0 and args.save_flag == 1:
             torch.save(model.state_dict(), args.weights_path + str(epoch) + '.pkl')
             print('save the weights in path: ', args.weights_path + str(epoch) + '.pkl')
 
@@ -108,8 +119,8 @@ if __name__ == '__main__':
     ndcgs = np.array(ndcg_loger)
     hit = np.array(hit_loger)
 
-    best_rec_0 = max(recs[:, 0])
-    idx = list(recs[:, 0]).index(best_rec_0)
+    best_ndcg_0 = max(ndcgs[:, -1])
+    idx = list(ndcgs[:, -1]).index(best_ndcg_0)
 
     final_perf = "Best Iter=[%d]@[%.1f]\trecall=[%s], precision=[%s], hit=[%s], ndcg=[%s]" % \
                  (idx, time() - t0, '\t'.join(['%.5f' % r for r in recs[idx]]),
