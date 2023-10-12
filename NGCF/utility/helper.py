@@ -39,6 +39,7 @@ def early_stopping(log_value, best_value, stopping_step, expected_order='acc', f
     if (expected_order == 'acc' and log_value >= best_value) or (expected_order == 'dec' and log_value <= best_value):
         stopping_step = 0
         best_value = log_value
+        print("######  The best value is updated!  ######")
     else:
         stopping_step += 1
 
