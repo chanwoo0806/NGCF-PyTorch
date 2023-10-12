@@ -17,7 +17,7 @@ def parse_args():
                         help='Project path.')
 
     parser.add_argument('--dataset', nargs='?', default='gowalla',
-                        help='Choose a dataset from {gowalla, yelp2018, amazon-book}')
+                        help='Choose a dataset from {gowalla, yelp2018, amazon-book, ks10}')
     parser.add_argument('--pretrain', type=int, default=0,
                         help='0: No pretrain, -1: Pretrain with the learned embeddings, 1:Pretrain with stored models.')
     parser.add_argument('--verbose', type=int, default=1,
@@ -42,7 +42,9 @@ def parse_args():
     parser.add_argument('--adj_type', nargs='?', default='norm',
                         help='Specify the type of the adjacency (laplacian) matrix from {plain, norm, mean}.')
 
-    parser.add_argument('--gpu_id', type=int, default=6)
+    # parser.add_argument('--gpu_id', type=int, default=6)
+    parser.add_argument('--patience', type=int, default=15,
+                        help= 'Patience of Early Stopping')
 
     parser.add_argument('--node_dropout_flag', type=int, default=1,
                         help='0: Disable node dropout, 1: Activate node dropout')
