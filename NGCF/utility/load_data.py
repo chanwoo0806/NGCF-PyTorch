@@ -9,6 +9,7 @@ import numpy as np
 import random as rd
 import scipy.sparse as sp
 from time import time
+import pickle
 
 class Data(object):
     def __init__(self, path, batch_size):
@@ -17,68 +18,87 @@ class Data(object):
 
         train_file = path + '/train.txt'
         test_file = path + '/test.txt'
-
-        #get number of users and items
-        self.n_users, self.n_items = 0, 0
-        self.n_train, self.n_test = 0, 0
+        processed_file = path + '/processed.pkl'
+        
+        attributes = ('n_users','n_items','n_train','n_test','exist_users','R','train_items','test_set')
         self.neg_pools = {}
 
-        self.exist_users = []
+        try:
+            with open(processed_file,'rb') as f:
+                processed = pickle.load(f)
+                for attr in attributes:
+                    setattr(self, attr, processed[attr])
+                print('using preprocessed data')
+                
+        except Exception:
+            #get number of users and items
+            self.n_users, self.n_items = 0, 0
+            self.n_train, self.n_test = 0, 0
+            # self.neg_pools = {}
 
-        with open(train_file) as f:
-            for l in f.readlines():
-                if len(l) > 0:
-                    l = l.strip('\n').split(' ')
-                    items = [int(i) for i in l[1:]]
-                    uid = int(l[0])
-                    self.exist_users.append(uid)
-                    self.n_items = max(self.n_items, max(items))
-                    self.n_users = max(self.n_users, uid)
-                    self.n_train += len(items)
+            self.exist_users = []
 
-        with open(test_file) as f:
-            for l in f.readlines():
-                if len(l) > 0:
-                    l = l.strip('\n')
-                    try:
-                        items = [int(i) for i in l.split(' ')[1:]]
-                    except Exception:
-                        continue
-                    self.n_items = max(self.n_items, max(items))
-                    self.n_test += len(items)
-        self.n_items += 1
-        self.n_users += 1
+            with open(train_file) as f:
+                for l in f.readlines():
+                    if len(l) > 0:
+                        l = l.strip('\n').split(' ')
+                        items = [int(i) for i in l[1:]]
+                        uid = int(l[0])
+                        self.exist_users.append(uid)
+                        self.n_items = max(self.n_items, max(items))
+                        self.n_users = max(self.n_users, uid)
+                        self.n_train += len(items)
 
-        self.print_statistics()
+            with open(test_file) as f:
+                for l in f.readlines():
+                    if len(l) > 0:
+                        l = l.strip('\n')
+                        try:
+                            items = [int(i) for i in l.split(' ')[1:]]
+                        except Exception:
+                            continue
+                        self.n_items = max(self.n_items, max(items))
+                        self.n_test += len(items)
+            self.n_items += 1
+            self.n_users += 1
 
-        self.R = sp.dok_matrix((self.n_users, self.n_items), dtype=np.float32)
+            self.print_statistics()
 
-        self.train_items, self.test_set = {}, {}
-        with open(train_file) as f_train:
-            with open(test_file) as f_test:
-                for l in f_train.readlines():
-                    if len(l) == 0:
-                        break
-                    l = l.strip('\n')
-                    items = [int(i) for i in l.split(' ')]
-                    uid, train_items = items[0], items[1:]
+            self.R = sp.dok_matrix((self.n_users, self.n_items), dtype=np.float32)
 
-                    for i in train_items:
-                        self.R[uid, i] = 1.
-                        # self.R[uid][i] = 1
-
-                    self.train_items[uid] = train_items
-
-                for l in f_test.readlines():
-                    if len(l) == 0: break
-                    l = l.strip('\n')
-                    try:
+            self.train_items, self.test_set = {}, {}
+            with open(train_file) as f_train:
+                with open(test_file) as f_test:
+                    for l in f_train.readlines():
+                        if len(l) == 0:
+                            break
+                        l = l.strip('\n')
                         items = [int(i) for i in l.split(' ')]
-                    except Exception:
-                        continue
+                        uid, train_items = items[0], items[1:]
 
-                    uid, test_items = items[0], items[1:]
-                    self.test_set[uid] = test_items
+                        for i in train_items:
+                            self.R[uid, i] = 1.
+                            # self.R[uid][i] = 1
+
+                        self.train_items[uid] = train_items
+
+                    for l in f_test.readlines():
+                        if len(l) == 0: break
+                        l = l.strip('\n')
+                        try:
+                            items = [int(i) for i in l.split(' ')]
+                        except Exception:
+                            continue
+
+                        uid, test_items = items[0], items[1:]
+                        self.test_set[uid] = test_items
+            
+            with open(processed_file, 'wb') as f:
+                processed = {}             
+                for attr in attributes:
+                    processed[attr] = getattr(self, attr)
+                pickle.dump(processed, f)
+                print('preprocessing done')
 
     def get_adj_mat(self):
         try:
