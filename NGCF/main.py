@@ -130,8 +130,9 @@ if __name__ == '__main__':
         # *********************************************************
         # save the user & item embeddings for pretraining.
         if ret['ndcg'][-1] == cur_best_pre_0 and args.save_flag == 1:
-            torch.save(model.state_dict(), args.weights_path + str(epoch) + '.pkl')
-            print('save the weights in path: ', args.weights_path + str(epoch) + '.pkl')
+            model_name = f'{args.dataset}-l{len(eval(args.layer_size))}-lr{args.lr}-r{eval(args.regs)[0]}' + '.pt'
+            torch.save(model.state_dict(), args.weights_path + model_name)
+            print('save the weights in path: ', args.weights_path + model_name)
     
     if args.tensorboard:
         writer.close()
