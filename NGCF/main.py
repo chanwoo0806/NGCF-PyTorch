@@ -13,7 +13,9 @@ from utility.batch_test import *
 
 import warnings
 warnings.filterwarnings('ignore')
-from time import time
+import os
+import time
+from tensorboardX import SummaryWriter
 
 
 if __name__ == '__main__':
@@ -41,7 +43,13 @@ if __name__ == '__main__':
                  norm_adj,
                  args).to(args.device)
 
-    t0 = time()
+    t0 = time.time()
+
+    if args.tensorboard:
+        ROOT_PATH = os.path.dirname(os.path.dirname(__file__))
+        TB_PATH = os.path.join(os.path.join(ROOT_PATH, f"tensorboard/{args.dataset}"), time.strftime("%m-%d-%Hh%Mm%Ss")) \
+            + f"-l{len(eval(args.layer_size))}-d{args.embed_size}-r{eval(args.regs)[0]}"
+        writer = SummaryWriter(TB_PATH)
     """
     *********************************************************
     Train.
@@ -51,7 +59,7 @@ if __name__ == '__main__':
 
     loss_loger, pre_loger, rec_loger, ndcg_loger, hit_loger = [], [], [], [], []
     for epoch in range(args.epoch):
-        t1 = time()
+        t1 = time.time()
         loss, mf_loss, emb_loss = 0., 0., 0.
         n_batch = data_generator.n_train // args.batch_size + 1
 
@@ -76,15 +84,18 @@ if __name__ == '__main__':
         if (epoch + 1) % 10 != 0:
             if args.verbose > 0 and epoch % args.verbose == 0:
                 perf_str = 'Epoch %d [%.1fs]: train==[%.5f=%.5f + %.5f]' % (
-                    epoch, time() - t1, loss, mf_loss, emb_loss)
+                    epoch, time.time() - t1, loss, mf_loss, emb_loss)
                 print(perf_str)
+                
+            if args.tensorboard:
+                writer.add_scalar("Train/Loss", loss, epoch)
             continue
 
-        t2 = time()
+        t2 = time.time()
         users_to_test = list(data_generator.test_set.keys())
         ret = test(model, users_to_test, drop_flag=False)
 
-        t3 = time()
+        t3 = time.time()
 
         loss_loger.append(loss)
         rec_loger.append(ret['recall'])
@@ -99,6 +110,14 @@ if __name__ == '__main__':
                         ret['precision'][0], ret['precision'][-1], ret['hit_ratio'][0], ret['hit_ratio'][-1],
                         ret['ndcg'][0], ret['ndcg'][-1])
             print(perf_str)
+            
+        if args.tensorboard:
+            writer.add_scalar("Train/Loss", loss, epoch)
+            for i, k in enumerate(eval(args.Ks)):
+                writer.add_scalar(f"Test/Recall_{k}", ret['recall'][i], epoch)
+                writer.add_scalar(f"Test/Precision_{k}", ret['precision'][i], epoch)
+                writer.add_scalar(f"Test/NDCG_{k}", ret['ndcg'][i], epoch)
+                writer.add_scalar(f"Test/HitRatio_{k}", ret['hit_ratio'][i], epoch)
 
         cur_best_pre_0, stopping_step, should_stop = early_stopping(ret['ndcg'][-1], cur_best_pre_0,
                                                                     stopping_step, expected_order='acc', flag_step=args.patience)
@@ -113,6 +132,9 @@ if __name__ == '__main__':
         if ret['ndcg'][-1] == cur_best_pre_0 and args.save_flag == 1:
             torch.save(model.state_dict(), args.weights_path + str(epoch) + '.pkl')
             print('save the weights in path: ', args.weights_path + str(epoch) + '.pkl')
+    
+    if args.tensorboard:
+        writer.close()
 
     recs = np.array(rec_loger)
     pres = np.array(pre_loger)
@@ -123,7 +145,7 @@ if __name__ == '__main__':
     idx = list(ndcgs[:, -1]).index(best_ndcg_0)
 
     final_perf = "Best Iter=[%d]@[%.1f]\trecall=[%s], precision=[%s], hit=[%s], ndcg=[%s]" % \
-                 (idx, time() - t0, '\t'.join(['%.5f' % r for r in recs[idx]]),
+                 (idx, time.time() - t0, '\t'.join(['%.5f' % r for r in recs[idx]]),
                   '\t'.join(['%.5f' % r for r in pres[idx]]),
                   '\t'.join(['%.5f' % r for r in hit[idx]]),
                   '\t'.join(['%.5f' % r for r in ndcgs[idx]]))

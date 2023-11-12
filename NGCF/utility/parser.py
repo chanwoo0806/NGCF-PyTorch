@@ -64,4 +64,6 @@ def parse_args():
 
     parser.add_argument('--report', type=int, default=0,
                         help='0: Disable performance report w.r.t. sparsity levels, 1: Show performance report w.r.t. sparsity levels')
+    parser.add_argument('--tensorboard', type=int, default=1,
+                        help='0: Deactivate tensorboard, 1: Activate tensorboard')
     return parser.parse_args()
