@@ -81,7 +81,7 @@ if __name__ == '__main__':
             mf_loss += batch_mf_loss
             emb_loss += batch_emb_loss
 
-        if (epoch + 1) % 10 != 0:
+        if (epoch + 1) % args.eval_step != 0:
             if args.verbose > 0 and epoch % args.verbose == 0:
                 perf_str = 'Epoch %d [%.1fs]: train==[%.5f=%.5f + %.5f]' % (
                     epoch, time.time() - t1, loss, mf_loss, emb_loss)

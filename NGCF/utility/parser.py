@@ -33,6 +33,8 @@ def parse_args():
                         help='Batch size.')
     parser.add_argument('--test_batch_size', type=int, default=1024,
                         help='Test batch size.')
+    parser.add_argument('--eval_step', type=int, default=5,
+                        help='Number of epochs for each evaluation.')
 
     parser.add_argument('--regs', nargs='?', default='[1e-5]',
                         help='Regularizations.')
