@@ -31,6 +31,8 @@ def parse_args():
                         help='Output sizes of every layer')
     parser.add_argument('--batch_size', type=int, default=1024,
                         help='Batch size.')
+    parser.add_argument('--test_batch_size', type=int, default=1024,
+                        help='Test batch size.')
 
     parser.add_argument('--regs', nargs='?', default='[1e-5]',
                         help='Regularizations.')
